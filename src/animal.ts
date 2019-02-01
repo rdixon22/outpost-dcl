@@ -177,12 +177,11 @@ export class Animal {
     this.attackAnim.playing = false;
     this.isFriendly = false;
     
-    this.isAnimating = true;
     this.elapsed = 0;
     this.animDuration = this.attackDuration;
 
     this.currentClip = this.attackAnim;
-    this.attackAnim.play();
+    this.startCurrentClip();
   }
 
   think()
@@ -206,13 +205,12 @@ export class Animal {
     this.stopCurrentClip();
 
     this.elapsed = 0;
-    this.isAnimating = true;
     this.animDuration = this.idleDuration;
     
     let rand:number = Math.floor(Math.random() * this.idleAnims.length);
     //log("playing idle clip #" + rand);
     this.currentClip = this.idleAnims[rand];
-    this.currentClip.play();
+    this.startCurrentClip();
   }
 
   walk() 
@@ -222,9 +220,10 @@ export class Animal {
 
     //log("WALKING from: " + this.origin + " to: " + this.destination);
 
-    this.currentClip = this.walkAnim;
     this.speedFactor = this.walkSpeed;
-    this.walkAnim.play();
+    this.currentClip = this.walkAnim;
+    
+    this.startCurrentClip();
   }
 
   run() 
@@ -234,9 +233,10 @@ export class Animal {
 
     //log("RUNNING from: " + this.origin + " to: " + this.destination);
 
-    this.currentClip = this.runAnim;
     this.speedFactor = this.runSpeed;
-    this.runAnim.play();
+    this.currentClip = this.runAnim;
+    
+    this.startCurrentClip();
   }
 
   planMovement()
@@ -257,12 +257,23 @@ export class Animal {
     this.hasArrived = false;
   }
 
+  startCurrentClip()
+  {
+      this.isAnimating = true;
+      if (this.currentClip != null)
+      {
+        this.currentClip.weight = 1;
+        this.currentClip.play();
+      }
+  }
+
   stopCurrentClip()
   {
       if (this.currentClip != null)
       {
         this.currentClip.pause();
         this.currentClip.playing = false;
+        this.currentClip.weight = 0.0;
       }
       this.isAnimating = false;
   }
