@@ -199,7 +199,7 @@ class PortableSystem implements ISystem  {
   update(dt: number) {
     for (let entity of this.group.entities) {
       const obj:Portable = entity.get(Portable);
-      obj.nextFrame();
+      obj.nextFrame(dt);
     }
   }
 }
