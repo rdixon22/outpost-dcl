@@ -28,7 +28,7 @@ export class Animal {
   // STATE MACHINE and AI
   public fsm:FiniteStateMachine<animal.State>;
   public randomStates:animal.State[];
-  public isFriendly:boolean = false; 
+  public isFriendly:boolean = true; 
   public personalSpace:float = 4.0; // how close the player can get before the animal gets scared (in meters squared)
   
   // MOVEMENT
@@ -37,12 +37,15 @@ export class Animal {
   public movesRandomly:boolean = true; // whether the animal chooses destinations at random, or in order
   public origin:Vector3; // the initial point the animal is moving from
   public destination:Vector3; // the current point the animal is moving towards
+  public distance:float = 0;
+  public traveled:float = 0;
   public fraction:number;
   public inTransit:boolean = false;
-  public currentSpeed = 2.0;
-  public walkSpeed:float = 9.0;
-  public runSpeed:float = 6.0;
-  public speedFactor:float = 6.0;
+
+  public currentSpeed:float = 2.0;
+  public walkSpeed:float = 0.6; // roughly meters per second
+  public runSpeed:float = 2.2; // roughly meters per second
+
   public hasArrived:boolean = false;
   public tooClose:boolean = false;
 
@@ -71,14 +74,14 @@ export class Animal {
   }
 
   loadModel(_filename: string, _idleClipNames:string[], _position: Vector3, _scale: Vector3) {
-    // create the entity
+
     const mod = new Entity();
   
     this.shape = new GLTFShape("models/" + _filename);
     log("Loading file: models/" + _filename);
     mod.set(this.shape);
 
-    mod.set(new Transform({ scale: _scale})); // position: _position, 
+    mod.set(new Transform({ scale: _scale}));
 
     if (_idleClipNames == null || _idleClipNames.length == 0)
     {
@@ -86,6 +89,7 @@ export class Animal {
         _idleClipNames.push("idle_2");
     }
 
+    // can have many different idle animations
     let newClip:AnimationClip;
     for (var i:number = 0; i < _idleClipNames.length; i++)
     {
@@ -94,11 +98,6 @@ export class Animal {
         this.idleAnims.push(newClip);
         log("Added idle animation: " + this.animPrefix + _idleClipNames[i]);
     }
-    // this.idleAnim = new AnimationClip(this.animPrefix + "idle_1", {loop: true, speed: 0.5});
-    // this.shape.addClip(this.idleAnim);
-
-    // this.idle2Anim = new AnimationClip(this.animPrefix + "idle_2", {loop: false});
-    // this.shape.addClip(this.idle2Anim);
 
     this.walkAnim = new AnimationClip(this.animPrefix + "walk", {loop: true});
     this.shape.addClip(this.walkAnim);
@@ -171,27 +170,14 @@ export class Animal {
     return this.modelEntity.get(GLTFShape);
   }
 
-  attack() 
-  {
-    this.stopCurrentClip();
-    this.attackAnim.playing = false;
-    this.isFriendly = false;
-    
-    this.elapsed = 0;
-    this.animDuration = this.attackDuration;
-
-    this.currentClip = this.attackAnim;
-    this.startCurrentClip();
-  }
-
   think()
   {
-    log(this.name + " is thinking...");
+    //log(this.name + " is thinking...");
     // stop previous animations
     this.inTransit = false;
     this.stopCurrentClip();
 
-    // Choices:
+    // Future choices:
     // - If player is close, and not friendly, run away
     // - If food is nearby, go to it and eat
     // - Otherwise randomly choose Idle, Walk, or Run
@@ -208,8 +194,20 @@ export class Animal {
     this.animDuration = this.idleDuration;
     
     let rand:number = Math.floor(Math.random() * this.idleAnims.length);
-    //log("playing idle clip #" + rand);
+    log(this.name + " playing idle clip #" + rand);
     this.currentClip = this.idleAnims[rand];
+    this.startCurrentClip();
+  }
+
+  attack() 
+  {
+    this.stopCurrentClip();
+    this.isFriendly = false;
+    
+    this.elapsed = 0;
+    this.animDuration = this.attackDuration;
+
+    this.currentClip = this.attackAnim;
     this.startCurrentClip();
   }
 
@@ -220,7 +218,7 @@ export class Animal {
 
     //log("WALKING from: " + this.origin + " to: " + this.destination);
 
-    this.speedFactor = this.walkSpeed;
+    this.currentSpeed = this.walkSpeed;
     this.currentClip = this.walkAnim;
     
     this.startCurrentClip();
@@ -233,7 +231,7 @@ export class Animal {
 
     //log("RUNNING from: " + this.origin + " to: " + this.destination);
 
-    this.speedFactor = this.runSpeed;
+    this.currentSpeed = this.runSpeed;
     this.currentClip = this.runAnim;
     
     this.startCurrentClip();
@@ -246,11 +244,13 @@ export class Animal {
     // Pick a destination, then walk there
     this.destination = this.chooseDestination();
 
-    // TODO: Orient the animal toward the destination -- this approach is not working
-    this.ent.get(Transform).lookAt(this.destination);
-    var rot:Quaternion = this.ent.get(Transform).rotation;
-    this.ent.get(Transform).rotation = Quaternion.Inverse(rot);
-
+    // DONE: Orient the animal toward the destination -- Vector3.lookAt() did work as intended
+    var angles:Vector3 = this.ent.get(Transform).rotation.eulerAngles;
+    angles.y = Math.atan2(this.origin.x - this.destination.x, this.origin.z - this.destination.z)*180 / Math.PI;
+    this.ent.get(Transform).rotation.eulerAngles = angles;
+    
+    this.distance = Vector3.Distance(this.ent.get(Transform).position, this.destination);
+    this.traveled = 0;
     this.fraction = 0;
 
     this.inTransit = true;
@@ -274,6 +274,7 @@ export class Animal {
         this.currentClip.pause();
         this.currentClip.playing = false;
         this.currentClip.weight = 0.0;
+        this.currentClip = null;
       }
       this.isAnimating = false;
   }
@@ -304,14 +305,6 @@ export class Animal {
     }
   }
 
-  arrivedAtDestination():boolean
-  {
-      return this.hasArrived;
-     // let pos:Vector3 = this.ent.get(Transform).position;
-      // some tolerance is allowed
-      //return (Vector3.DistanceSquared(pos, this.destination) < 0.1);
-  }
-
   playerIsTooClose():boolean
   {
       let pos:Vector3 = this.ent.get(Transform).position;
@@ -332,12 +325,10 @@ export class Animal {
     }
     else if (this.inTransit)
     {
-        //log("In transit to " + this.destination);
         // handle movement-based animations
         // check if we are at the destination
-        if (this.arrivedAtDestination())
+        if (this.hasArrived)
         {
-            //log("Arrived!");
             this.tooClose = false;
 
             this.fsm.go(animal.State.Thinking);
@@ -352,7 +343,7 @@ export class Animal {
     {
         // handle non-movement animations
         this.elapsed += dt;
-        //log(this.name + " currentClip.playing = " + this.currentClip.playing + ", elapsed=" + this.elapsed);
+
         if (this.elapsed > this.animDuration)
         {
             // clip has stopped
@@ -370,36 +361,22 @@ export class Animal {
 
   move(dt: number)
   {
-    let transform = this.ent.get(Transform); 
+    // changing to use a constant movement speed
+    this.traveled += (dt * this.currentSpeed);
 
-    this.fraction += dt / this.speedFactor;
-    if (this.fraction > 1) 
+    if (this.traveled > this.distance) 
     {
-        this.fraction = 1;
+        this.traveled = this.distance;
         this.hasArrived = true;
     }
 
-    // apply easing
-    //var easeVal:number = this.easeOutCubic(this.fraction);
-    //if (easeVal > 1) easeVal = 1;
+    this.fraction = this.traveled / this.distance;
 
     var newPos:Vector3 = Vector3.Lerp(
         this.origin,
         this.destination,
-        this.fraction // easeval
+        this.fraction
     )
-    transform.position = newPos;
-    //log("dt = " + dt + ", fraction = " + this.fraction + ", new pos = " + newPos);
+    this.ent.get(Transform).position = newPos;
   }
-
-    // EASING
-    easeInCubic(t:number):number
-    {
-        return Math.pow(t,3);
-    }
-
-    easeOutCubic(t:number):number
-    {
-        return 1 - this.easeInCubic(1-t);
-    }
 }
