@@ -23,6 +23,23 @@ function spawnModel(filename: string, x: number, y: number, z: number, scaleX: n
 const terrain = spawnModel("Terrain2.gltf", -39.98, 0, 0,  0.78, 0.78, 0.78);
 terrain.get(Transform).rotation.eulerAngles = new Vector3(0, 180, 0);
 
+const tree1 = spawnModel("env/TreePine_01.gltf", 19, 10.3, 41.8,  1, 1, 1);
+
+const flower1 = spawnModel("env/Plant_01.gltf", -9.6, 0.08, 73.7,  1, 1, 1);
+const flowerShape:Shape = flower1.get(GLTFShape);
+
+const flower2 = new Entity();
+flower2.set(flowerShape);
+flower2.set(new Transform({position: new Vector3(-9.2, 0.07, 73.3), scale: new Vector3(1, 1, 1)}));
+flower2.get(Transform).rotation.eulerAngles = new Vector3(0, -90, 0);
+engine.addEntity(flower2);
+
+const flower3 = new Entity();
+flower3.set(flowerShape);
+flower3.set(new Transform({position: new Vector3(-9.8, 0.07, 73.5), scale: new Vector3(0.9, 0.9, 0.9)}));
+flower3.get(Transform).rotation.eulerAngles = new Vector3(0, -90, 0);
+engine.addEntity(flower3);
+
 const corner1 = spawnModel("outpostcorner/scene.gltf", 6.5, 10.35, 65,  0.75, 0.75, 0.75);
 corner1.get(Transform).rotation.eulerAngles = new Vector3(0, 90, 0);
 
