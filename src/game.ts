@@ -2,7 +2,6 @@ import { SpriteShape } from "./spriteshape";
 import { Animal } from "./animal";
 import { Portable } from "./portable";
 
-/// <reference path="./typestate.ts" />y
 /// -------- SCENE CREATION FUNCTIONS --------
 
 function spawnModel(filename: string, x: number, y: number, z: number, scaleX: number = 1, scaleY: number = 1, scaleZ: number = 1) {
@@ -19,16 +18,11 @@ function spawnModel(filename: string, x: number, y: number, z: number, scaleX: n
   return mod;
 }
 
-// class and colliders for Outpost
-// colliders for all
-// add cat
-// why won't buttons animate?
-// improve terrain textures
-
 /// -------- SCENE SET-UP --------
+
 const terrain = spawnModel("Terrain2.gltf", -39.98, 0, 0,  0.78, 0.78, 0.78);
 terrain.get(Transform).rotation.eulerAngles = new Vector3(0, 180, 0);
-/// -------- SCENE SET-UP --------
+
 const corner1 = spawnModel("outpostcorner/scene.gltf", 6.5, 10.35, 65,  0.75, 0.75, 0.75);
 corner1.get(Transform).rotation.eulerAngles = new Vector3(0, 90, 0);
 
@@ -45,7 +39,7 @@ const projector = spawnModel("projector/scene.gltf", -3, 10.4, 65,  0.6, 0.6, 0.
 
 const chair = spawnModel("pilotseat/scene.gltf", 14.1, 10.4, 60.8,  0.8, 0.8, 0.8);
 
-const firstClue = spawnModel("FirstClue.gltf", 18, 0.1, 13,  0.5, 0.5, 0.5);
+const firstClue = spawnModel("FirstClue.gltf", 18, 0.1, 13.5,  0.5, 0.5, 0.5);
 firstClue.set(new Portable(firstClue));
 
 // Floating ball over the projector
@@ -84,9 +78,7 @@ const fileNames3 = [
   "textures/bbumps_02.png"
 ];
 const waterBall = new SpriteShape(ball, ballShape, fileNames3, Color3.Blue(), 1.0);
-//log("BEFORE SET waterBall");
 ball.set(waterBall);
-//log("AFTER SET waterBall");
 ball.set(new Transform({position: new Vector3(4.3, 12, 64.96), scale: new Vector3(2, 1.4, 2)}));
 ball.get(Transform).rotation.eulerAngles = new Vector3(0, 90, 0);
 let ballShown:boolean = false;
@@ -99,6 +91,12 @@ projector.set(
         engine.addEntity(ball);
         waterBall.animate(true);
         ballShown = true;
+      }
+      else
+      {
+        waterBall.stop();
+        engine.removeEntity(ball);
+        ballShown = false;
       }
   })
 )
@@ -152,8 +150,8 @@ catWays.push(new Vector3(35, 0.1, 29));
 catWays.push(new Vector3(40.4, 0.1, 26.2));
 catWays.push(new Vector3(37.4, 0.1, 15.5));
 catWays.push(new Vector3(18.8, 0.1, 15.3));
-catWays.push(new Vector3(18.6, 2.6, 18.4));
-catWays.push(new Vector3(23.7, 2.6, 21.4));
+catWays.push(new Vector3(18.6, 2.5, 18.4));
+catWays.push(new Vector3(23.6, 2.5, 20.8));
 catWays.push(new Vector3(23.7, 0.2, 23.7));
 catWays.push(new Vector3(22, 0.1, 28));
 
@@ -163,20 +161,17 @@ cat1.idle();
 
 /// -------- INPUT --------
 
-// Instance the input object
 const input = Input.instance; 
 
-// button down event
-
+// log our camera location when we click
 input.subscribe("BUTTON_A_DOWN", e => {
   log("camera pos: ", Camera.instance.position)
 })
 
-// button up event
+// log the position of what we click on
 input.subscribe("BUTTON_A_UP", e => {
   log("buttonUp", e)
 })
-
 
 /// -------- SYSTEMS --------
 
